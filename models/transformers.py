@@ -6,7 +6,7 @@ from sklearn.preprocessing import normalize
 from sklearn.utils import _IS_32BIT
 from sklearn.utils.validation import check_is_fitted, FLOAT_DTYPES
 
-from model.computer import WeightsComputer
+from models.computer import WeightsComputer
 
 
 class Transformer(TransformerMixin, BaseEstimator):
@@ -18,7 +18,7 @@ class Transformer(TransformerMixin, BaseEstimator):
         use_idf: bool=True,
         smooth_idf: bool=True,
         sublinear_tf: bool=False,
-        tf_func: str='absolute'
+        tf_func: str=None
     ):
         self.norm = norm
         self.use_idf = use_idf
@@ -61,8 +61,13 @@ class Transformer(TransformerMixin, BaseEstimator):
 
         if self.use_idf:
             n_features = X.shape[1]
-            print('transformers.fit X.shape: ', X.shape)
             idf = self.get_collection_frequency_factor(X, y)
+
+            if hasattr(self.computer, 'icf_mean'):
+                self.icf_mean  = self.computer.icf_mean
+
+            if hasattr(self.computer, 'icsdf_mean' ):
+                self.icsdf_mean  = self.computer.icsdf_mean 
 
             self._idf_diag = sp.diags(
                 idf,
@@ -155,14 +160,14 @@ class Transformer(TransformerMixin, BaseEstimator):
         idf : log( (1 + n) / (1 + df(t)) ) + 1
         dfs: Distinguishing feature selector
         chi2 : Term Weighting Based on Chi-Square Statistic
-        ig: TODO
-        igm: TODO
+        ig: Term weighting based on information gain
+        igm : Term Weighting Based on Inverse Gravity Moment
         pb : Probability-Based Term Weighting
-        idf-icf: TODO
+        idf_icf: Term Weighting Based on Inverse Class Frequency
         rf : Term Weighting Based on Relevance Frequency
-        idf-icdf: TODO
-        iadf: TODO
-        iadf_norm: TODO
+        idf_icdf: Term Weighting Based on Inverse Class Density Frequency
+        iadf : inverse average document frequency
+        iadf_norm : inverse average document frequency normalized
 
         Returns
         -------
@@ -179,13 +184,13 @@ class Transformer(TransformerMixin, BaseEstimator):
         else:
             dtype = self.dtype
 
-        computer = WeightsComputer(
+        self.computer = WeightsComputer(
             dtype = dtype,
             weight_method = weight_method,
             smooth_idf = self.smooth_idf
         )
 
-        return computer.method(X, y)
+        return self.computer.method(X, y)
 
     def get_tf(self, X):
         """Compute TF term:
@@ -199,8 +204,7 @@ class Transformer(TransformerMixin, BaseEstimator):
         n_t - Number of times a term occured in the document
         n - number of words in document
 
-        'absolute': n_t (standart realization of TF in sklearn), 
-        'normalized':  n_t / n, 
+        'tf': n_t (standart realization of TF in sklearn), 
         'log_tf': log(n_t) + 1, 
         'sqrt_tf': sqrt(n_t)
 
@@ -208,15 +212,13 @@ class Transformer(TransformerMixin, BaseEstimator):
         -------
         TF matrix of shape X.shape
         """
-        if self.tf_func=='absolute':
+        if self.tf_func=='tf':
             return X
-        elif self.tf_func=='log':
-            return np.log(X) + 1
-        elif self.tf_func=='normalized':
-            return X / np.sum(X, axis=1)
-        elif self.tf_func=='sqrt':
+        elif self.tf_func=='log_tf':
+            return np.log(X + 1) 
+        elif self.tf_func=='sqrt_tf':
             return np.sqrt(X)
         else:
-            print('Wrong parameter values. Avaliable TF functions: ')
-            print('absolute, normalized, log_tf, sqrt_tf')
+            print('Wrong tf_func parameter values. Avaliable TF functions: ')
+            print('tf, log_tf, sqrt_tf')
             raise ValueError

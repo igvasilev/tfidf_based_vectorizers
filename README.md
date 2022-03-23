@@ -13,7 +13,7 @@ Availiable functions:
     dfs: Distinguishing feature selector
     chi2 : Term Weighting Based on Chi-Square Statistic
     ig: Term weighting based on information gain
-    igm: TODO
+    igm: Term Weighting Based on Inverse Gravity Moment
     pb : Probability-Based Term Weighting
     idf_icf: Term Weighting Based on Inverse Class Frequency
     rf : Term Weighting Based on Relevance Frequency

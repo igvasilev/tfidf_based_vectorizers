@@ -3,7 +3,7 @@ import warnings
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils.validation import check_is_fitted, FLOAT_DTYPES
 
-from model.transformers import Transformer
+from models.transformers import Transformer
 
 
 class Vectorizer(CountVectorizer):
@@ -11,14 +11,35 @@ class Vectorizer(CountVectorizer):
     This class instantiates tf-idf based vectorizers
 
     List of availiable methods:
-    1. tf-idf
-    2. tf-dfs
+
+        Availiable TF functions:
+        ---------------------
+            n_t - Number of times a term occured in the document
+            n - number of words in document
+
+            'tf' : n_t (standart realization of TF in sklearn), 
+            'log_tf': log(n_t) + 1, 
+            'sqrt_tf': sqrt(n_t)
+
+        Weight methods:
+        ---------------------
+            idf : log( (1 + n) / (1 + df(t)) ) + 1
+            dfs : Distinguishing feature selector
+            chi2 : Term Weighting Based on Chi-Square Statistic
+            ig : Term weighting based on information gain
+            igm: Term Weighting Based on Inverse Gravity Moment
+            pb : Probability-Based Term Weighting
+            idf_icf : Term Weighting Based on Inverse Class Frequency
+            rf : Term Weighting Based on Relevance Frequency
+            idf_icsdf : Term Weighting Based on Inverse Class Density Frequency
+            iadf : inverse average document frequency
+            iadf_norm : inverse average document frequency normalized
     '''
 
     def __init__(
         self,
         weight_method: str='idf',
-        tf_func='absolute',
+        tf_func: str='tf',
         input="content",
         encoding="utf-8",
         decode_error="strict",
@@ -97,6 +118,13 @@ class Vectorizer(CountVectorizer):
         self._warn_for_unused_params()
         X = super().fit_transform(raw_documents)
         self.transformer.fit(X, y)
+
+        if hasattr(self.transformer, 'icf_mean'):
+            self.icf_mean  = self.transformer.icf_mean
+
+        if hasattr(self.transformer, 'icsdf_mean' ):
+            self.icsdf_mean  = self.transformer.icsdf_mean 
+
         return self
 
     def fit_transform(self, raw_documents, y=None):
@@ -120,6 +148,13 @@ class Vectorizer(CountVectorizer):
         self.transformer.fit(X, y)
         # X is already a transformed view of raw_documents so
         # we set copy to False
+        
+        if hasattr(self.transformer, 'icf_mean'):
+            self.icf_mean  = self.transformer.icf_mean
+
+        if hasattr(self.transformer, 'icsdf_mean' ):
+            self.icsdf_mean  = self.transformer.icsdf_mean 
+
         return self.transformer.transform(X, copy=False)
 
     def transform(self, raw_documents):
